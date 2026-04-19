@@ -28,6 +28,7 @@ struct OutputFolderBar: View {
             }
             .buttonStyle(.plain)
             .help("Reveal in Finder")
+            .accessibilityLabel("Output folder: \(settings.displayPath). Activate to reveal in Finder.")
 
             Spacer(minLength: 8)
 
@@ -36,6 +37,7 @@ struct OutputFolderBar: View {
             }
             .secondaryGlassButton()
             .controlSize(.small)
+            .accessibilityLabel("Change output folder")
         }
         .padding(.horizontal, Theme.pad)
         .padding(.vertical, 10)

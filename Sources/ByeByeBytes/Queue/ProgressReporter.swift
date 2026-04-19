@@ -18,7 +18,6 @@ public struct ProgressReporter: Sendable {
     private let totalWeight: Double
     private var startTime: Date?
     private var smoothedETA: TimeInterval?
-    private var lastFraction: Double = 0
 
     public init(totalWeight: Double = 1.0) {
         self.totalWeight = max(totalWeight, 0.0001)
@@ -29,7 +28,6 @@ public struct ProgressReporter: Sendable {
     /// and whose `etaSeconds` is the smoothed remaining time.
     public mutating func update(fraction: Double) -> JobProgress {
         let clamped = min(max(fraction, 0), 1)
-        lastFraction = clamped
 
         let now = Date()
         if startTime == nil {

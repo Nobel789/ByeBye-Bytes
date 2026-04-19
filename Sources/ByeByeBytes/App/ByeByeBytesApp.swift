@@ -4,9 +4,12 @@ import SwiftUI
 
 @main
 struct ByeByeBytesApp: App {
-    @StateObject private var settings = AppSettings()
+    @StateObject private var settings: AppSettings
     @StateObject private var queue: JobQueue
 
+    /// We initialize both state objects from a single `AppSettings` instance
+    /// so `JobQueue` holds the *same* reference the UI observes — otherwise
+    /// a user-changed output directory wouldn't flow through to new jobs.
     init() {
         let s = AppSettings()
         _settings = StateObject(wrappedValue: s)

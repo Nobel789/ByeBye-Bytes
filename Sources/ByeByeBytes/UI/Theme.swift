@@ -1,4 +1,4 @@
-/// Visual theme constants (palette, spacing, typography) plus a reduce-motion helper.
+/// Visual theme constants: palette, spacing, and typography shared across views.
 
 import SwiftUI
 
@@ -9,7 +9,6 @@ public enum Theme {
     public static let buttonMinHeight: CGFloat = 32
 
     public static let idleBg = Color(nsColor: .windowBackgroundColor)
-    public static let activeBg = Color(nsColor: .controlBackgroundColor)
     public static let subtle = Color.secondary.opacity(0.12)
     public static let dim = Color.secondary.opacity(0.6)
 
@@ -22,19 +21,5 @@ public enum Theme {
         public static let body = SwiftUI.Font.system(size: 13)
         public static let caption = SwiftUI.Font.system(size: 11, weight: .regular)
         public static let mono = SwiftUI.Font.system(size: 12, design: .monospaced)
-    }
-}
-
-/// Reads `\.accessibilityReduceMotion` and exposes the bool to a closure-based view builder.
-public struct ReduceMotionReader<Content: View>: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    private let content: (Bool) -> Content
-
-    public init(@ViewBuilder content: @escaping (Bool) -> Content) {
-        self.content = content
-    }
-
-    public var body: some View {
-        content(reduceMotion)
     }
 }

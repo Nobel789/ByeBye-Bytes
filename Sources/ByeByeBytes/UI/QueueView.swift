@@ -113,6 +113,7 @@ private struct DropMoreStrip: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Add more videos")
         .onHover { hovering in
             isHovering = hovering
             if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }

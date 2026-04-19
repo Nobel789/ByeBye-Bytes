@@ -172,7 +172,6 @@ struct JobRow: View {
 
     // MARK: Styling
 
-
     private var primaryTextColor: Color {
         switch job.state {
         case .cancelled: return Theme.dim

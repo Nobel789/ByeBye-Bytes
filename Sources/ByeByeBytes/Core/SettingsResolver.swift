@@ -9,6 +9,8 @@ public enum SettingsResolver {
 
     // MARK: - Public API
 
+    /// Chooses between remuxing an already-HEVC source and a full re-encode
+    /// based on the source's container codec and observed bitrate.
     public static func resolve(single profile: SourceProfile) -> EncodeRecipe {
         // Already HEVC and within a sane bitrate envelope for its resolution? Remux, save time.
         if profile.videoCodec == kCMVideoCodecType_HEVC,
@@ -18,6 +20,10 @@ public enum SettingsResolver {
         return reencodeRecipe(for: profile)
     }
 
+    /// Picks a merge recipe. Falls through to `resolve(single:)` for a
+    /// single-source list, picks the fast composition path when every input
+    /// shares resolution/fps/codec/bit-depth/HDR, and otherwise normalizes
+    /// to the largest common canvas. Requires at least one profile.
     public static func resolve(merge profiles: [SourceProfile]) -> EncodeRecipe {
         precondition(!profiles.isEmpty, "resolve(merge:) requires at least one source")
 

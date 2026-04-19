@@ -8,6 +8,10 @@ import CoreVideo
 /// Uses the macOS 13+/iOS 16+ async `load(...)` APIs on AVAsset.
 public enum MediaInspector {
 
+    /// Probes `url` and returns a `SourceProfile`. Throws
+    /// `EncoderError.assetLoadFailed` if AVFoundation cannot open the asset
+    /// or its primary video track, and `EncoderError.unsupportedInput` if
+    /// the asset has no video track or its format description is missing.
     public static func inspect(_ url: URL) async throws -> SourceProfile {
         // File size — resourceValues is cheap and works even if AVAsset chokes.
         let fileSize: Int64 = {

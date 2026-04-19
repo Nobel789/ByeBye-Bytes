@@ -21,8 +21,11 @@ public enum OutputRouter {
 
     // MARK: - Internals
 
+    /// Downloads folder with a hard-coded `~/Downloads` fallback. Mirrors
+    /// `AppSettings.defaultDirectory()` so the two can't drift apart.
     private static var defaultDirectory: URL {
-        FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
+        FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory() + "/Downloads", isDirectory: true)
     }
 
     private static func uniqueURL(stem: String, in dir: URL) -> URL {

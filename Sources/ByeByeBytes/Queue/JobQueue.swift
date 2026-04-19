@@ -45,7 +45,16 @@ public final class JobQueue: ObservableObject {
     @Published public private(set) var jobs: [Job] = []
     @Published public private(set) var pendingMultiDropURLs: [URL]? = nil
 
-    private let gate = ExecutionGate(maxConcurrent: 2)
+    private let gate: ExecutionGate
+
+    /// Matches the number of dedicated HEVC encoder engines on the host.
+    /// Apple Silicon: M1 / M2 / M3 / M4 base chips ship 1 engine, Pro/Max/Ultra
+    /// variants ship 2+ and also carry ≥10 CPU cores — so core count is a
+    /// cheap, reliable proxy. Intel falls to the lower branch and encodes
+    /// in software, where one concurrent encode keeps latency predictable.
+    private static var defaultConcurrency: Int {
+        ProcessInfo.processInfo.activeProcessorCount >= 10 ? 2 : 1
+    }
     private var runners: [UUID: Task<Void, Never>] = [:]
     private let logger = Logger(subsystem: "com.byebyebytes.queue", category: "JobQueue")
     private let settings: AppSettings?
@@ -55,10 +64,14 @@ public final class JobQueue: ObservableObject {
 
     public init(settings: AppSettings? = nil) {
         self.settings = settings
+        self.gate = ExecutionGate(maxConcurrent: Self.defaultConcurrency)
     }
 
     // MARK: - Public API
 
+    /// Enqueues one or more URLs. A single URL encodes immediately; two or
+    /// more surface `pendingMultiDropURLs` so the UI can prompt the user to
+    /// choose between batch-encode and merge.
     public func submit(urls: [URL]) {
         guard !urls.isEmpty else { return }
         if urls.count == 1 {
@@ -68,6 +81,7 @@ public final class JobQueue: ObservableObject {
         }
     }
 
+    /// Commits the pending multi-drop as one job per URL.
     public func confirmBatch() {
         guard let pending = pendingMultiDropURLs else { return }
         pendingMultiDropURLs = nil
@@ -76,6 +90,8 @@ public final class JobQueue: ObservableObject {
         }
     }
 
+    /// Commits the pending multi-drop as a single merged job. No-op (but
+    /// still clears the pending list) if fewer than two URLs are pending.
     public func confirmMerge() {
         guard let pending = pendingMultiDropURLs, pending.count >= 2 else {
             pendingMultiDropURLs = nil
@@ -85,11 +101,14 @@ public final class JobQueue: ObservableObject {
         enqueueMerge(sources: pending)
     }
 
+    /// Requests cancellation of the identified job. State transition to
+    /// `.cancelled` happens inside the runner when it observes the cancel.
     public func cancel(id: Job.ID) {
         runners[id]?.cancel()
-        // State transition to `.cancelled` happens in the runner's catch block.
     }
 
+    /// Removes all terminal jobs (`done`, `failed`, `cancelled`, `skipped`)
+    /// from the visible queue. In-flight jobs are left alone.
     public func clearCompleted() {
         jobs.removeAll { job in
             switch job.state {
