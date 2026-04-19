@@ -51,9 +51,16 @@ Most video compressors force you to make a dozen decisions before they'll touch 
 
 ```bash
 brew install --cask saiftheboss7/byebye-bytes/byebye-bytes
+xattr -dr com.apple.quarantine "/Applications/ByeBye Bytes.app"
 ```
 
-Upgrades land the same way — `brew upgrade --cask byebye-bytes`. Uninstall with `--zap` to also remove stored preferences:
+The second command clears macOS's quarantine attribute on the ad-hoc-signed app so Gatekeeper doesn't block it on first launch. You can skip this step by installing with `--no-quarantine` instead:
+
+```bash
+brew install --cask --no-quarantine saiftheboss7/byebye-bytes/byebye-bytes
+```
+
+Upgrades land the same way — `brew upgrade --cask byebye-bytes` (re-run the `xattr` command after each upgrade, or keep using `--no-quarantine`). Uninstall with `--zap` to also remove stored preferences:
 
 ```bash
 brew uninstall --zap --cask byebye-bytes
@@ -63,7 +70,13 @@ Tap source: [saiftheboss7/homebrew-byebye-bytes](https://github.com/saiftheboss7
 
 ### Prebuilt (no Homebrew)
 
-Download the latest `.app` from [Releases](../../releases) and drag it into `/Applications`. Because builds are ad-hoc signed, Gatekeeper will warn on first launch — right-click → **Open** once to allow it.
+Download the latest `.app` from [Releases](../../releases), unzip, and drag **ByeBye Bytes.app** into `/Applications`. Because builds are ad-hoc signed, clear quarantine after copying:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/ByeBye Bytes.app"
+```
+
+Or right-click the app in Finder → **Open** once to allow it through Gatekeeper.
 
 ### Build from source
 
