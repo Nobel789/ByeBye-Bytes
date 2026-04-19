@@ -47,7 +47,21 @@ Most video compressors force you to make a dozen decisions before they'll touch 
 
 ## Install
 
-### Prebuilt (fastest)
+### Homebrew (recommended)
+
+```bash
+brew install --cask saiftheboss7/byebye-bytes/byebye-bytes
+```
+
+Upgrades land the same way — `brew upgrade --cask byebye-bytes`. Uninstall with `--zap` to also remove stored preferences:
+
+```bash
+brew uninstall --zap --cask byebye-bytes
+```
+
+Tap source: [saiftheboss7/homebrew-byebye-bytes](https://github.com/saiftheboss7/homebrew-byebye-bytes).
+
+### Prebuilt (no Homebrew)
 
 Download the latest `.app` from [Releases](../../releases) and drag it into `/Applications`. Because builds are ad-hoc signed, Gatekeeper will warn on first launch — right-click → **Open** once to allow it.
 
