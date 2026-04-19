@@ -8,6 +8,17 @@ struct QueueView: View {
     let isDropTargeted: Bool
     let onPick: () -> Void
 
+    /// True when at least one job has reached a terminal state that the
+    /// "Clear" affordance can remove.
+    private var hasCompleted: Bool {
+        queue.jobs.contains { job in
+            switch job.state {
+            case .done, .failed, .cancelled, .skipped: return true
+            case .queued, .analyzing, .encoding:       return false
+            }
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if let pending = queue.pendingMultiDropURLs, pending.count > 1 {
@@ -34,7 +45,12 @@ struct QueueView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            DropMoreStrip(isTargeted: isDropTargeted, onPick: onPick)
+            DropMoreStrip(
+                isTargeted: isDropTargeted,
+                hasCompleted: hasCompleted,
+                onPick: onPick,
+                onClear: { queue.clearCompleted() }
+            )
         }
     }
 }
@@ -92,32 +108,53 @@ private struct MultiDropDecisionBar: View {
 
 private struct DropMoreStrip: View {
     let isTargeted: Bool
+    let hasCompleted: Bool
     let onPick: () -> Void
+    let onClear: () -> Void
     @State private var isHovering = false
 
     var body: some View {
-        Button(action: onPick) {
-            HStack(spacing: 8) {
-                Image(systemName: "plus.rectangle.on.rectangle")
-                    .foregroundStyle(tint)
-                Text("Drop or click to add more videos")
-                    .font(Theme.Font.caption)
-                    .foregroundStyle(tint)
-                Spacer()
-                Text("⌘O")
-                    .font(Theme.Font.mono)
-                    .foregroundStyle(Theme.dim)
+        HStack(spacing: 10) {
+            // Left portion: the primary drop/click affordance. Own Button so
+            // the Clear pill on the right can be tapped without triggering it.
+            Button(action: onPick) {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.rectangle.on.rectangle")
+                        .foregroundStyle(tint)
+                    Text("Drop or click to add more videos")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(tint)
+                    Spacer(minLength: 8)
+                }
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, Theme.pad)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .accessibilityLabel("Add more videos")
+            .onHover { hovering in
+                isHovering = hovering
+                if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
+
+            if hasCompleted {
+                Button(action: onClear) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "xmark.circle")
+                        Text("Clear")
+                    }
+                    .font(Theme.Font.caption)
+                }
+                .secondaryGlassButton()
+                .controlSize(.small)
+                .help("Clear finished jobs and return to the drop zone")
+                .accessibilityLabel("Clear finished jobs")
+            }
+
+            Text("⌘O")
+                .font(Theme.Font.mono)
+                .foregroundStyle(Theme.dim)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Add more videos")
-        .onHover { hovering in
-            isHovering = hovering
-            if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-        }
+        .padding(.horizontal, Theme.pad)
+        .padding(.vertical, 10)
         .glassPanel()
         .overlay(
             Rectangle()
