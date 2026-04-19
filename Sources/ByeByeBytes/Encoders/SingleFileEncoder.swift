@@ -95,6 +95,10 @@ public struct SingleFileEncoder: Encoder {
         // Writer
         let writer = try makeWriter(outputURL: outputURL, fileType: .mp4)
 
+        // Preserve source common/quicktime metadata (creation date, GPS, model, etc.).
+        // AVAssetWriter drops these by default.
+        await copyPreservedMetadata(from: asset, to: writer)
+
         let videoSettings = hevcOutputSettings(size: encodeSize, fps: fps, recipe: recipe)
         let videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
         videoInput.expectsMediaDataInRealTime = false

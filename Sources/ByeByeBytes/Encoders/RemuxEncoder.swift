@@ -61,6 +61,9 @@ public struct RemuxEncoder: Encoder {
         // Writer
         let writer = try makeWriter(outputURL: outputURL, fileType: .mp4)
 
+        // Preserve source metadata (creation date, GPS, model, etc.).
+        await copyPreservedMetadata(from: asset, to: writer)
+
         let videoFormatHint = try await videoTrack.load(.formatDescriptions).first
         let videoInput = AVAssetWriterInput(
             mediaType: .video,

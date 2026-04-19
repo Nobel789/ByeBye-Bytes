@@ -319,6 +319,12 @@ public struct MergeEncoder: Encoder {
 
         // ----- Phase 2: Writer setup (single writer, single video + audio input).
         let writer = try makeWriter(outputURL: outputURL, fileType: .mp4)
+
+        // Preserve metadata from the first source (merged outputs can only carry one set).
+        if let firstURL = sources.first {
+            await copyPreservedMetadata(from: AVURLAsset(url: firstURL), to: writer)
+        }
+
         let videoSettings = hevcOutputSettings(size: targetSize, fps: targetFPS, recipe: recipe)
         let videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
         videoInput.expectsMediaDataInRealTime = false
@@ -334,6 +340,9 @@ public struct MergeEncoder: Encoder {
                 kCVPixelBufferPixelFormatTypeKey as String: pixelFormat,
                 kCVPixelBufferWidthKey as String: Int(targetSize.width),
                 kCVPixelBufferHeightKey as String: Int(targetSize.height),
+                // Metal-compatible + IOSurface-backed pool buffers allow the CIContext render to
+                // DMA directly into the encoder input, skipping the CPU copy path.
+                kCVPixelBufferMetalCompatibilityKey as String: true,
                 kCVPixelBufferIOSurfacePropertiesKey as String: [:] as [String: Any],
             ]
         )
@@ -365,11 +374,15 @@ public struct MergeEncoder: Encoder {
             catch { throw EncoderError.readerSetupFailed(error.localizedDescription) }
 
             guard let videoTrack = try await asset.loadTracksAsync(.video).first else { continue }
-            let decodeFormat: OSType = kCVPixelFormatType_32BGRA
+            // Native biplanar YUV matches (a) the HW decoder's output, (b) the HW encoder's
+            // input pool, and (c) what CoreImage accepts natively on Metal. Avoids the full-frame
+            // CPU swizzle that BGRA decode forces and keeps everything on IOSurface.
+            let decodeFormat: OSType = decodePixelFormatType(for: recipe.hevcProfile)
             let vOut = AVAssetReaderTrackOutput(
                 track: videoTrack,
                 outputSettings: [
                     kCVPixelBufferPixelFormatTypeKey as String: decodeFormat,
+                    kCVPixelBufferMetalCompatibilityKey as String: true,
                     kCVPixelBufferIOSurfacePropertiesKey as String: [:] as [String: Any],
                 ])
             vOut.alwaysCopiesSampleData = false
@@ -423,13 +436,19 @@ public struct MergeEncoder: Encoder {
         }
 
         // ----- Phase 4: Single pump on video input; stateful source advancement.
-        let ciContext = CIContext(options: [
-            .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) as Any,
-            .cacheIntermediates: false,
-        ])
+        // Shared Metal-backed CIContext (warmed across encodes; survives across jobs).
+        let ciContext = SharedCI.context
         let blackCanvas = CIImage(color: .black).cropped(
             to: CGRect(origin: .zero, size: targetSize))
-        let outputColorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+        // Match output color space to the encode profile: HDR10/HLG uses Rec.2020, SDR uses sRGB.
+        // CI will do the YCbCr→RGB→target conversion on the GPU.
+        let outputColorSpace: CGColorSpace = {
+            if recipe.preserveHDR, recipe.hevcProfile == .main10,
+               let hdr = CGColorSpace(name: CGColorSpace.itur_2020) {
+                return hdr
+            }
+            return CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+        }()
 
         let videoQueue = DispatchQueue(label: "byebyebytes.merge.norm.video")
         let audioQueue = DispatchQueue(label: "byebyebytes.merge.norm.audio")
