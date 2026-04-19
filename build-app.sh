@@ -56,7 +56,7 @@ PLIST="$APP/Contents/Info.plist"
 plutil -replace CFBundleDevelopmentRegion -string "en"                "$PLIST"
 plutil -replace CFBundleExecutable         -string "ByeBye Bytes"     "$PLIST"
 plutil -replace CFBundleIdentifier         -string "com.byebyebytes.app" "$PLIST"
-plutil -replace CFBundleShortVersionString -string "1.0"              "$PLIST"
+plutil -replace CFBundleShortVersionString -string "1.0.1"            "$PLIST"
 plutil -replace CFBundleVersion            -string "1"                "$PLIST"
 plutil -replace LSMinimumSystemVersion     -string "14.0"             "$PLIST"
 
