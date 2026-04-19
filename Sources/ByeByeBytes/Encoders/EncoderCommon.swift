@@ -58,6 +58,11 @@ func hevcOutputSettings(size: CGSize, fps: Int, recipe: EncodeRecipe) -> [String
     let safeFps = max(fps, 1)
     let gopFrames = max(1, Int(Double(safeFps) * max(recipe.gopSeconds, 0.1)))
 
+    // Several AVVideo* constants are string-equal to their kVTCompressionPropertyKey_*
+    // siblings (MaxKeyFrameInterval, MaxKeyFrameIntervalDuration, AllowFrameReordering,
+    // ExpectedFrameRate). Listing both forms traps the Swift dict literal with
+    // "duplicate keys", so we use the AVVideo* spelling for each pair and keep
+    // the VT-only properties with their kVT* spelling below.
     var compression: [String: Any] = [
         AVVideoQualityKey: recipe.quality,
         AVVideoMaxKeyFrameIntervalKey: gopFrames,
@@ -65,16 +70,9 @@ func hevcOutputSettings(size: CGSize, fps: Int, recipe: EncodeRecipe) -> [String
         AVVideoProfileLevelKey: profileKey,
         AVVideoAllowFrameReorderingKey: true,
         AVVideoExpectedSourceFrameRateKey: safeFps,
-        // Several AVVideo* constants are string-equal to their VT siblings
-        // (MaxKeyFrameInterval, MaxKeyFrameIntervalDuration, AllowFrameReordering,
-        // ExpectedFrameRate) — listing both forms traps the Swift dictionary
-        // literal with "duplicate keys". We keep only VT-only properties below.
         kVTCompressionPropertyKey_RealTime as String: false,
         kVTCompressionPropertyKey_AllowTemporalCompression as String: true,
     ]
-
-    // Force hardware selection; no silent software fallback.
-    compression[AVVideoEncoderSpecificationKey] = hardwareHEVCEncoderSpecification
 
     if let cap = recipe.bitrateCap {
         compression[AVVideoAverageBitRateKey] = NSNumber(value: cap)
@@ -85,10 +83,17 @@ func hevcOutputSettings(size: CGSize, fps: Int, recipe: EncodeRecipe) -> [String
             [NSNumber(value: peak), NSNumber(value: 1.0)] as NSArray
     }
 
+    // IMPORTANT: AVVideoEncoderSpecificationKey is a TOP-LEVEL key in outputSettings,
+    // not a compression-properties key. AVAssetWriterInput raises
+    // NSInvalidArgumentException ("Compression property AVVideoEncoderSpecificationKey
+    // is not supported for video codec type hvc1") if it's placed inside the
+    // compression dict. The encoder spec selects the VT encoder before the
+    // compression session is even built, which is why it belongs at the root.
     var settings: [String: Any] = [
         AVVideoCodecKey: AVVideoCodecType.hevc,
         AVVideoWidthKey: Int(size.width.rounded()),
         AVVideoHeightKey: Int(size.height.rounded()),
+        AVVideoEncoderSpecificationKey: hardwareHEVCEncoderSpecification,
         AVVideoCompressionPropertiesKey: compression,
     ]
 
