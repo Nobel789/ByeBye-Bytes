@@ -65,13 +65,12 @@ func hevcOutputSettings(size: CGSize, fps: Int, recipe: EncodeRecipe) -> [String
         AVVideoProfileLevelKey: profileKey,
         AVVideoAllowFrameReorderingKey: true,
         AVVideoExpectedSourceFrameRateKey: safeFps,
-        // Explicit VT hints. Accept they may be filtered out by AVAssetWriter — harmless.
+        // Several AVVideo* constants are string-equal to their VT siblings
+        // (MaxKeyFrameInterval, MaxKeyFrameIntervalDuration, AllowFrameReordering,
+        // ExpectedFrameRate) — listing both forms traps the Swift dictionary
+        // literal with "duplicate keys". We keep only VT-only properties below.
         kVTCompressionPropertyKey_RealTime as String: false,
         kVTCompressionPropertyKey_AllowTemporalCompression as String: true,
-        kVTCompressionPropertyKey_AllowFrameReordering as String: true,
-        kVTCompressionPropertyKey_MaxKeyFrameInterval as String: gopFrames,
-        kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration as String: max(recipe.gopSeconds, 0.1),
-        kVTCompressionPropertyKey_ExpectedFrameRate as String: safeFps,
     ]
 
     // Force hardware selection; no silent software fallback.
