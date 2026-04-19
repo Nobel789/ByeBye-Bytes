@@ -7,6 +7,10 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-optimised-black?logo=apple)](#)
 
+<p align="center">
+  <img src="Screenshots/ByeBye_UI.png" alt="ByeBye Bytes drop zone on macOS Tahoe" width="720">
+</p>
+
 ---
 
 ## What it does
