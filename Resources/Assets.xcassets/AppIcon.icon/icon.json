@@ -1,0 +1,18 @@
+{
+  "fill" : { "automatic-gradient" : { "light" : "display-p3:0.180,0.450,0.900" } },
+  "groups" : [
+    {
+      "layers" : [
+        { "image-name" : "Chevron" },
+        { "image-name" : "Front" },
+        { "image-name" : "Mid" },
+        { "image-name" : "Back" }
+      ],
+      "shadow" : { "kind" : "neutral", "opacity" : 0.3 }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : "off",
+    "squircles" : "on"
+  }
+}

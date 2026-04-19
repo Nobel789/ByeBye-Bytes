@@ -1,0 +1,61 @@
+name: ByeByeBytes
+options:
+  bundleIdPrefix: com.byebyebytes
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    DEAD_CODE_STRIPPING: YES
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    PRODUCT_NAME: "ByeBye Bytes"
+    GENERATE_INFOPLIST_FILE: NO
+
+targets:
+  ByeByeBytes:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Sources/ByeByeBytes
+      - path: Resources/AppIcon.icns
+        buildPhase: resources
+      - path: Resources/Assets.xcassets
+        buildPhase: resources
+    info:
+      path: App.Info.plist
+      properties:
+        CFBundleName: "ByeBye Bytes"
+        CFBundleDisplayName: "ByeBye Bytes"
+        CFBundleExecutable: $(EXECUTABLE_NAME)
+        CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundlePackageType: APPL
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSHighResolutionCapable: true
+        NSSupportsAutomaticGraphicsSwitching: true
+        LSApplicationCategoryType: public.app-category.video
+        NSHumanReadableCopyright: ""
+    entitlements:
+      path: ByeByeBytes.entitlements
+      properties:
+        com.apple.security.cs.allow-jit: true
+        com.apple.security.cs.disable-library-validation: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.byebyebytes.app
+        CODE_SIGN_ENTITLEMENTS: ByeByeBytes.entitlements
+        INFOPLIST_FILE: App.Info.plist
+        COMBINE_HIDPI_IMAGES: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        ENABLE_PREVIEWS: YES
