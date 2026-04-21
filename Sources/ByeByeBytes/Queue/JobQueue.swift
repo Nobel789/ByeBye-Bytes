@@ -185,14 +185,7 @@ public final class JobQueue: ObservableObject {
             }
 
             // 3) Output URL.
-            let outDir = settings?.outputDirectory
-            let output: URL
-            switch snapshot.kind {
-            case .single:
-                output = OutputRouter.outputURL(forSingle: snapshot.sources[0], in: outDir)
-            case .merge:
-                output = OutputRouter.outputURL(forMerge: snapshot.sources, in: outDir)
-            }
+            let output = makeOutputURL(for: snapshot)
             updateJob(id: id) { $0.outputURL = output }
 
             // 4) Pick encoder.
@@ -233,22 +226,11 @@ public final class JobQueue: ObservableObject {
                 return Double(outBytes) < Double(snapshot.bytesBefore) * 0.98
             }()
 
-            if !shouldKeep {
-                try? FileManager.default.removeItem(at: output)
-                updateJob(id: id) {
-                    $0.progress = JobProgress(fraction: 1.0, etaSeconds: 0)
-                    $0.state = .skipped("already well-compressed")
-                    $0.finishedAt = Date()
-                    $0.bytesAfter = nil
-                    $0.outputURL = nil
-                }
+            if shouldKeep {
+                markCompleted(id: id, bytesAfter: outBytes)
             } else {
-                updateJob(id: id) {
-                    $0.progress = JobProgress(fraction: 1.0, etaSeconds: 0)
-                    $0.state = .done
-                    $0.finishedAt = Date()
-                    $0.bytesAfter = outBytes
-                }
+                try? FileManager.default.removeItem(at: output)
+                markSkipped(id: id, reason: "already well-compressed")
             }
         } catch is CancellationError {
             updateJob(id: id) { $0.state = .cancelled }
@@ -282,6 +264,35 @@ public final class JobQueue: ObservableObject {
             profiles.append(profile)
         }
         return profiles
+    }
+
+    private func makeOutputURL(for job: Job) -> URL {
+        let outDir = settings?.outputDirectory
+        switch job.kind {
+        case .single:
+            return OutputRouter.outputURL(forSingle: job.sources[0], in: outDir)
+        case .merge:
+            return OutputRouter.outputURL(forMerge: job.sources, in: outDir)
+        }
+    }
+
+    private func markCompleted(id: UUID, bytesAfter: Int64) {
+        updateJob(id: id) {
+            $0.progress = JobProgress(fraction: 1.0, etaSeconds: 0)
+            $0.state = .done
+            $0.finishedAt = Date()
+            $0.bytesAfter = bytesAfter
+        }
+    }
+
+    private func markSkipped(id: UUID, reason: String) {
+        updateJob(id: id) {
+            $0.progress = JobProgress(fraction: 1.0, etaSeconds: 0)
+            $0.state = .skipped(reason)
+            $0.finishedAt = Date()
+            $0.bytesAfter = nil
+            $0.outputURL = nil
+        }
     }
 
     private func selectEncoder(for kind: JobKind, strategy: EncodeStrategy) -> any Encoder {
